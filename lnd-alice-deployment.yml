@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lnd-alice
+spec:
+  selector:
+    matchLabels:
+      app: lnd-alice
+  template:
+    metadata:
+      labels:
+        app: lnd-alice
+    spec:
+      containers:
+        - command: ["/bin/sh", "-ec", "while :; do echo '.'; sleep 5 ; done"]
+          env:
+            - name: CHAIN
+              value: "bitcoin"
+            - name: DEBUG
+              value: "debug"
+            - name: NETWORK
+              value: "simnet"
+            - name: RPCPASS
+              value: "rpcpass"
+            - name: RPCUSER
+              value: "rpcuser"
+          name: lnd-alice
+          image: davidjoos/lnd:v0.14.2-beta-dev
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - mountPath: /rpc
+              name: shared
+            - mountPath: /root/.lnd
+              name: lnd-alice
+          ports:
+            - containerPort: 10009
+            - containerPort: 8080
+      volumes:
+        - name: shared
+          persistentVolumeClaim:
+            claimName: shared
+        - name: lnd-alice
+          persistentVolumeClaim:
+            claimName: lnd-alice
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lnd-alice
+spec:
+  resources:
+    requests:
+      storage: 100Mi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lnd-alice
+spec:
+  selector:
+    app: lnd-alice
+  ports:
+    - protocol: TCP
+      port: 10009
+      targetPort: rpc
+      name: rpc
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: http

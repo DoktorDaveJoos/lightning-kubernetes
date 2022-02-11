@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: btcd
+spec:
+  selector:
+    matchLabels:
+      app: btcd
+  template:
+    metadata:
+      labels:
+        app: btcd
+    spec:
+      containers:
+        - command:
+            - ./start-btcd.sh
+          env:
+            - name: DEBUG
+              value: "debug"
+            - name: MINING_ADDRESS
+              value: ""
+            - name: NETWORK
+              value: "simnet"
+            - name: RPCPASS
+              value: "rpcpass"
+            - name: RPCUSER
+              value: "rpcuser"
+          image: davidjoos/btcd:v0.14.2-beta
+          name: btcd
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - mountPath: /rpc
+              name: shared
+            - mountPath: /data
+              name: bitcoin
+          ports:
+            - name: rpc
+              containerPort: 18556
+            - name: cmgr
+              containerPort: 18555
+      volumes:
+        - name: shared
+          persistentVolumeClaim:
+            claimName: shared
+        - name: bitcoin
+          persistentVolumeClaim:
+            claimName: bitcoin
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bitcoin
+spec:
+  resources:
+    requests:
+      storage: 512Mi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: btcd
+spec:
+  selector:
+    app: btcd
+  ports:
+    - protocol: TCP
+      port: 18556
+      targetPort: rpc
+      name: rpc
+    - protocol: TCP
+      port: 18555
+      targetPort: cmgr
+      name: cmgr
