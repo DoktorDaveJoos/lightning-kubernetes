@@ -12,7 +12,8 @@ spec:
         app: lnd-alice
     spec:
       containers:
-        - command: ["/bin/sh", "-ec", "while :; do echo '.'; sleep 5 ; done"]
+        - command:
+            - ./start-lnd.sh
           env:
             - name: CHAIN
               value: "bitcoin"
